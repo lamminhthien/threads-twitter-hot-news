@@ -26,8 +26,9 @@ jobs:
       - name: Thu thập bài mới từ Threads
         env:
           THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
-          THREADS_KEYWORDS: ${{ vars.THREADS_KEYWORDS || 'AI,React,Cloud' }}
-          MAX_PER_KEYWORD: ${{ vars.MAX_PER_KEYWORD || '3' }}
+          THREADS_KEYWORDS: ${{ vars.THREADS_KEYWORDS }}
+          MAX_PER_TOPIC: ${{ vars.MAX_PER_TOPIC || '2' }}
+          MAX_ITEMS: ${{ vars.MAX_ITEMS || '30' }}
         run: |
           if [ -z "$THREADS_TOKEN" ]; then
             echo "::notice::Chưa cấu hình secret THREADS_TOKEN, bỏ qua lần chạy này."

@@ -37,6 +37,7 @@ const compact = new Intl.NumberFormat("vi-VN", { notation: "compact" });
 
 function statsLine(item) {
   const parts = [];
+  if (item.keyword) parts.push(`#${item.keyword}`);
   if (Number.isFinite(item.likes)) parts.push(`${compact.format(item.likes)} thích`);
   if (Number.isFinite(item.replies)) parts.push(`${compact.format(item.replies)} trả lời`);
   return parts.join(" · ");

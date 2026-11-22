@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Thu thập bài viết nổi bật từ Threads API và ghi ra data/news.json.
+// Thu thập bài viết nổi bật từ Threads API theo nhiều chủ đề và ghi ra data/news.json.
 //
 // Env:
 //   THREADS_TOKEN        (bắt buộc) long-lived access token
-//   THREADS_KEYWORDS     danh sách từ khóa, cách nhau bằng dấu phẩy (mặc định "AI,React,Cloud")
-//   MAX_PER_KEYWORD      số bài tối đa mỗi từ khóa (mặc định 3)
+//   THREADS_KEYWORDS     tuỳ chọn: danh sách từ khóa tự do, cách nhau bằng dấu phẩy.
+//                        Nếu có, mỗi từ khóa trở thành một chủ đề riêng (bỏ qua danh sách mặc định).
+//   MAX_PER_TOPIC        số bài tối đa mỗi chủ đề (mặc định 2)
+//   MAX_ITEMS            tổng số bài tối đa trong bản tin (mặc định 30)
 //   THREADS_GRAPH_URL    override base URL (dùng để test local)
 //
 // Chạy: THREADS_TOKEN=... node scripts/collect.mjs
@@ -19,13 +21,40 @@ const SEEN_PATH = path.join(DATA_DIR, "seen.json");
 
 const GRAPH_URL = (process.env.THREADS_GRAPH_URL || "https://graph.threads.com").replace(/\/$/, "");
 const TOKEN = process.env.THREADS_TOKEN;
-const KEYWORDS = (process.env.THREADS_KEYWORDS || "AI,React,Cloud")
+const MAX_PER_TOPIC = Number(process.env.MAX_PER_TOPIC || process.env.MAX_PER_KEYWORD || 2);
+const MAX_ITEMS = Number(process.env.MAX_ITEMS || 30);
+const SEEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const FIELDS = "id,text,permalink,timestamp,username";
+
+// Bản tin phủ nhiều chủ đề, không chỉ công nghệ. Mỗi chủ đề có một vài từ khóa
+// để kết quả phong phú hơn, nhưng khi hiển thị chỉ gom theo nhãn chủ đề.
+const DEFAULT_TOPICS = [
+  { topic: "Thời sự", keywords: ["tin nóng", "thời sự"] },
+  { topic: "Kinh tế", keywords: ["kinh tế", "chứng khoán"] },
+  { topic: "Thể thao", keywords: ["bóng đá", "thể thao"] },
+  { topic: "Giải trí", keywords: ["showbiz", "phim ảnh"] },
+  { topic: "Công nghệ", keywords: ["công nghệ", "AI"] },
+  { topic: "Sức khỏe", keywords: ["sức khỏe", "dinh dưỡng"] },
+  { topic: "Giáo dục", keywords: ["giáo dục", "tuyển sinh"] },
+  { topic: "Đời sống", keywords: ["đời sống", "tâm sự"] },
+  { topic: "Du lịch", keywords: ["du lịch", "check-in"] },
+  { topic: "Ẩm thực", keywords: ["ẩm thực", "quán ngon"] },
+  { topic: "Bất động sản", keywords: ["bất động sản", "nhà đất"] },
+  { topic: "Xe", keywords: ["ô tô", "xe máy"] },
+  { topic: "Game", keywords: ["game", "esports"] },
+  { topic: "Âm nhạc", keywords: ["âm nhạc", "ca sĩ"] },
+  { topic: "Việc làm", keywords: ["việc làm", "tuyển dụng"] },
+  { topic: "Pháp luật", keywords: ["pháp luật", "giao thông"] },
+];
+
+const CUSTOM_KEYWORDS = (process.env.THREADS_KEYWORDS || "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
-const MAX_PER_KEYWORD = Number(process.env.MAX_PER_KEYWORD || 3);
-const SEEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const FIELDS = "id,text,permalink,timestamp,username";
+
+const TOPICS = CUSTOM_KEYWORDS.length
+  ? CUSTOM_KEYWORDS.map((keyword) => ({ topic: keyword, keywords: [keyword] }))
+  : DEFAULT_TOPICS;
 
 function fail(message) {
   console.error(`✖ ${message}`);
@@ -51,7 +80,7 @@ async function searchKeyword(keyword) {
   url.searchParams.set("q", keyword);
   url.searchParams.set("search_type", "TOP");
   url.searchParams.set("fields", FIELDS);
-  url.searchParams.set("limit", String(MAX_PER_KEYWORD));
+  url.searchParams.set("limit", String(Math.max(MAX_PER_TOPIC, 5)));
   url.searchParams.set("access_token", TOKEN);
 
   const response = await fetch(url, { headers: { accept: "application/json" } });
@@ -65,15 +94,33 @@ async function searchKeyword(keyword) {
   return Array.isArray(body?.data) ? body.data : [];
 }
 
-function toItem(post, topic) {
+function toItem(post, topic, keyword) {
   return {
     id: String(post.id),
     topic,
+    keyword,
     author: post.username || "threads",
     text: post.text || "",
     permalink: post.permalink || "",
     timestamp: post.timestamp || new Date().toISOString(),
   };
+}
+
+// Chọn bài theo kiểu xoay vòng chủ đề để bản tin không bị một chủ đề chiếm hết.
+function takeBalanced(byTopic, limit) {
+  const queues = [...byTopic.values()].map((items) => items.slice());
+  const picked = [];
+
+  while (picked.length < limit && queues.some((queue) => queue.length)) {
+    for (const queue of queues) {
+      const item = queue.shift();
+      if (!item) continue;
+      picked.push(item);
+      if (picked.length >= limit) break;
+    }
+  }
+
+  return picked;
 }
 
 function buildDigest(items) {
@@ -83,23 +130,31 @@ function buildDigest(items) {
   for (const item of items) byTopic.set(item.topic, (byTopic.get(item.topic) || 0) + 1);
 
   const spread = [...byTopic.entries()]
-    .map(([topic, count]) => `${count} bài về ${topic}`)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([topic, count]) => `${count} bài ${topic}`)
     .join(", ");
 
   const lead = items[0];
   const excerpt = lead.text.length > 180 ? `${lead.text.slice(0, 177).trimEnd()}…` : lead.text;
 
-  return `Hôm nay có ${items.length} bài nổi bật (${spread}). Đáng chú ý nhất: “${excerpt}” — @${lead.author}.`;
+  return `Hôm nay có ${items.length} bài nổi bật trên ${byTopic.size} chủ đề (${spread}). Đáng chú ý nhất: “${excerpt}” — @${lead.author}.`;
 }
 
 async function main() {
   if (!TOKEN) fail("Thiếu THREADS_TOKEN. Tạo token từ Meta for Developers rồi export lại.");
-  if (!Number.isFinite(MAX_PER_KEYWORD) || MAX_PER_KEYWORD < 1) fail("MAX_PER_KEYWORD phải là số >= 1.");
-  if (!KEYWORDS.length) fail("THREADS_KEYWORDS rỗng.");
+  if (!Number.isFinite(MAX_PER_TOPIC) || MAX_PER_TOPIC < 1) fail("MAX_PER_TOPIC phải là số >= 1.");
+  if (!Number.isFinite(MAX_ITEMS) || MAX_ITEMS < 1) fail("MAX_ITEMS phải là số >= 1.");
+  if (!TOPICS.length) fail("Danh sách chủ đề rỗng.");
 
-  console.log(`→ Tìm ${KEYWORDS.length} từ khóa: ${KEYWORDS.join(", ")}`);
+  const queries = [];
+  for (const { topic, keywords } of TOPICS) {
+    for (const keyword of keywords) queries.push({ topic, keyword });
+  }
 
-  const results = await Promise.allSettled(KEYWORDS.map((keyword) => searchKeyword(keyword)));
+  console.log(`→ ${TOPICS.length} chủ đề, ${queries.length} từ khóa, tối đa ${MAX_ITEMS} bài`);
+
+  const results = await Promise.allSettled(queries.map(({ keyword }) => searchKeyword(keyword)));
 
   const seenData = await readJson(SEEN_PATH, {});
   const now = Date.now();
@@ -109,53 +164,57 @@ async function main() {
     if (Number.isFinite(at) && now - at < SEEN_TTL_MS) seen[id] = timestamp;
   }
 
-  const collected = [];
+  const byTopic = new Map(TOPICS.map(({ topic }) => [topic, []]));
+  const collectedIds = new Set();
   let skipped = 0;
 
   results.forEach((result, index) => {
-    const keyword = KEYWORDS[index];
+    const { topic, keyword } = queries[index];
     if (result.status === "rejected") {
       console.warn(`! ${result.reason.message}`);
       return;
     }
-    for (const post of result.value.slice(0, MAX_PER_KEYWORD)) {
-      const item = toItem(post, keyword);
-      if (!item.id || seen[item.id] || collected.some((existing) => existing.id === item.id)) {
+    for (const post of result.value) {
+      const item = toItem(post, topic, keyword);
+      if (!item.id || seen[item.id] || collectedIds.has(item.id)) {
         skipped += 1;
         continue;
       }
-      collected.push(item);
-      seen[item.id] = new Date().toISOString();
+      collectedIds.add(item.id);
+      byTopic.get(topic).push(item);
     }
   });
 
-  if (!collected.length) {
+  for (const [topic, items] of byTopic) {
+    items.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+    byTopic.set(topic, items.slice(0, MAX_PER_TOPIC));
+  }
+
+  const items = takeBalanced(byTopic, MAX_ITEMS).sort(
+    (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp),
+  );
+
+  if (!items.length) {
     console.log("• Không có bài mới nào, giữ nguyên data/news.json.");
     await saveJson(SEEN_PATH, seen);
     return;
   }
 
-  const items = collected
-    .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
-    .map(({ id, topic, author, text, permalink, timestamp }) => ({
-      id,
-      topic,
-      author,
-      text,
-      permalink,
-      timestamp,
-    }));
+  for (const item of items) seen[item.id] = new Date().toISOString();
 
   await saveJson(NEWS_PATH, {
     generated_at: new Date().toISOString(),
     source: "threads",
-    keywords: KEYWORDS,
+    topics: [...new Set(items.map((item) => item.topic))],
+    keywords: [...new Set(items.map((item) => item.keyword).filter(Boolean))],
     digest: buildDigest(items),
     items,
   });
   await saveJson(SEEN_PATH, seen);
 
-  console.log(`✔ Ghi ${items.length} bài mới (bỏ qua ${skipped} bài trùng) vào data/news.json`);
+  console.log(
+    `✔ Ghi ${items.length} bài thuộc ${new Set(items.map((item) => item.topic)).size} chủ đề (bỏ qua ${skipped} bài trùng) vào data/news.json`,
+  );
 }
 
 main().catch((error) => fail(error.message));
