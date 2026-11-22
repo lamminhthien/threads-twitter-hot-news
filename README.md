@@ -6,7 +6,7 @@ Site tĩnh tổng hợp các bài viết nổi bật trên Threads theo từ kh�
 
 1. **Thu thập** — `scripts/collect.mjs` gọi Threads API `GET /v1.0/keyword_search` với `search_type=TOP` cho từng từ khóa, bỏ bài trùng (lưu 7 ngày trong `data/seen.json`), rồi ghi `data/news.json`.
 2. **Hiển thị** — `index.html` + `assets/app.js` đọc `data/news.json` và render bản tin, lọc theo chủ đề.
-3. **Deploy** — mỗi lần `data/` thay đổi, workflow `pages.yml` publish site lên GitHub Pages.
+3. **Deploy** — GitHub Pages publish trực tiếp từ nhánh `main`; mỗi lần `data/` được commit, site tự build lại.
 
 ## Cấu trúc
 
@@ -42,9 +42,13 @@ Biến môi trường hỗ trợ: `THREADS_TOKEN`, `THREADS_KEYWORDS`, `MAX_PER_
 1. Tạo Meta App (Use Case: **Access Threads API**), cấp quyền `threads_basic` + `threads_keyword_search`, đổi sang long-lived token (60 ngày).
 2. Thêm secret `THREADS_TOKEN` trong **Settings → Secrets and variables → Actions**.
 3. (Tuỳ chọn) thêm variables `THREADS_KEYWORDS`, `MAX_PER_KEYWORD` trong tab **Variables**.
-4. Bật **Settings → Pages → Source: GitHub Actions**.
+Không có secret thì `collect.yml` chỉ ghi notice và bỏ qua, site vẫn build bình thường.
 
-Không có secret thì `collect.yml` chỉ ghi notice và bỏ qua, site vẫn deploy bình thường.
+### Về deploy
+
+Pages đang dùng **Deploy from a branch → `main` / `/`** (kèm `.nojekyll`), không tốn Actions minutes.
+
+> Lưu ý: tài khoản hiện đang bị khoá Actions vì lỗi billing ("The job was not started because your account is locked due to a billing issue"), nên `collect.yml` sẽ không chạy cho tới khi thanh toán được xử lý. Sau khi xử lý, bạn có thể chuyển Pages sang **Source: GitHub Actions** và chạy `pages.yml` bằng tay nếu muốn.
 
 ## Ghi chú
 
