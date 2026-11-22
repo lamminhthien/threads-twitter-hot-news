@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Threads Hot News</title>
+    <meta
+      name="description"
+      content="Bản tin tự động tổng hợp các bài viết nổi bật trên Threads theo từ khóa."
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%B0%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <div>
+          <h1>Threads Hot News</h1>
+          <p class="subtitle">
+            Bài viết nổi bật trên Threads, gom theo từ khóa và tóm tắt tự động.
+          </p>
+        </div>
+        <p class="updated" id="updated" aria-live="polite">Đang tải…</p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="digest" id="digest" hidden>
+        <h2 class="section-title">Tóm tắt nhanh</h2>
+        <p class="digest-text" id="digest-text"></p>
+      </section>
+
+      <nav class="filters" id="filters" aria-label="Lọc theo chủ đề" hidden></nav>
+
+      <section aria-labelledby="list-title">
+        <h2 class="section-title" id="list-title">
+          Bài nổi bật <span class="count" id="count"></span>
+        </h2>
+        <div class="grid" id="grid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          Dữ liệu từ Threads API · cập nhật bằng GitHub Actions ·
+          <a href="https://github.com/lamminhthien/threads-twitter-hot-news">source</a>
+        </p>
+      </div>
+    </footer>
+
+    <template id="card-template">
+      <article class="card">
+        <div class="card-head">
+          <span class="avatar" aria-hidden="true"></span>
+          <div class="meta">
+            <span class="author"></span>
+            <time class="time"></time>
+          </div>
+          <span class="topic"></span>
+        </div>
+        <p class="text"></p>
+        <div class="card-foot">
+          <span class="stats"></span>
+          <a class="link" target="_blank" rel="noopener noreferrer">Xem trên Threads →</a>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="./assets/app.js"></script>
+  </body>
+</html>

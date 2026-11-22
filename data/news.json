@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-11-22T13:00:00.000Z",
+  "source": "sample",
+  "keywords": ["AI", "React", "Cloud", "Startup"],
+  "digest": "Sáng nay dân dev Threads bàn nhiều về chi phí agent AI và hạ tầng: nhiều người chuyển sang model nhỏ chạy local cho tác vụ phân loại, trong khi phần lớn công ty vẫn giữ một model lớn cho bước tóm tắt. Ở mảng web, câu chuyện React Server Components tiếp tục gây tranh luận vì thời gian build tăng khi dự án lớn.",
+  "items": [
+    {
+      "id": "sample-1",
+      "topic": "AI",
+      "author": "thanh_dev",
+      "text": "Sau 2 tuần thử, mình bỏ model lớn cho bước phân loại. Model 3B chạy local đủ tốt, chi phí API giảm từ $180 xuống $12/tháng. Chỉ giữ model lớn cho phần viết tóm tắt cuối.",
+      "permalink": "https://www.threads.net/@thanh_dev/post/sample-1",
+      "timestamp": "2026-11-22T02:41:00.000Z",
+      "likes": 1840,
+      "replies": 132
+    },
+    {
+      "id": "sample-2",
+      "topic": "React",
+      "author": "linh.frontend",
+      "text": "RSC giúp bundle nhỏ hơn thật, nhưng build của mình từ 40s lên 3 phút sau khi chuyển. Ai đang chạy monorepo lớn cho mình hỏi có cách cache nào ổn không?",
+      "permalink": "https://www.threads.net/@linh.frontend/post/sample-2",
+      "timestamp": "2026-11-22T03:15:00.000Z",
+      "likes": 620,
+      "replies": 87
+    },
+    {
+      "id": "sample-3",
+      "topic": "Cloud",
+      "author": "cloud.weekly",
+      "text": "Cron trigger + KV vẫn là combo rẻ nhất cho bot đọc tin: không server, không database, chạy 3 lần/ngày tốn chưa tới 1 USD/tháng. Đừng dựng Kubernetes cho việc này.",
+      "permalink": "https://www.threads.net/@cloud.weekly/post/sample-3",
+      "timestamp": "2026-11-22T01:05:00.000Z",
+      "likes": 2410,
+      "replies": 203
+    },
+    {
+      "id": "sample-4",
+      "topic": "Startup",
+      "author": "minhtuan.builds",
+      "text": "Bài học sau khi đốt 6 tháng: đừng tự viết crawler cho mọi nguồn. Thuê API 20 USD/tháng rẻ hơn 200 giờ dev, và mình bắt đầu bán được hàng sớm hơn 2 tháng.",
+      "permalink": "https://www.threads.net/@minhtuan.builds/post/sample-4",
+      "timestamp": "2026-11-21T23:48:00.000Z",
+      "likes": 980,
+      "replies": 64
+    },
+    {
+      "id": "sample-5",
+      "topic": "AI",
+      "author": "nlp.mai",
+      "text": "Mẹo nhỏ khi gọi LLM để tóm tắt tin: luôn đặt giới hạn ký tự trong prompt và yêu cầu trả về JSON. Tỉ lệ phải parse lại giảm từ 30% xuống gần 0.",
+      "permalink": "https://www.threads.net/@nlp.mai/post/sample-5",
+      "timestamp": "2026-11-22T04:02:00.000Z",
+      "likes": 1340,
+      "replies": 95
+    },
+    {
+      "id": "sample-6",
+      "topic": "Cloud",
+      "author": "devops.hieu",
+      "text": "Cảnh báo cho ai dùng free tier: KV read nhiều hơn bạn tưởng khi mỗi request đều kiểm tra bài đã đăng. Cache 60s ở edge là đủ, tiết kiệm 90% lượt đọc.",
+      "permalink": "https://www.threads.net/@devops.hieu/post/sample-6",
+      "timestamp": "2026-11-22T05:20:00.000Z",
+      "likes": 470,
+      "replies": 38
+    }
+  ]
+}
