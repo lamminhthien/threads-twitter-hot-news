@@ -1,13 +1,10 @@
 name: Deploy site to Pages
 
+# Site hiện được publish trực tiếp từ nhánh main (Pages legacy build), nên workflow
+# này chỉ dùng khi bạn muốn chuyển sang deploy bằng Actions.
+# Nếu chuyển: Settings → Pages → Source: GitHub Actions, rồi chạy tay workflow này.
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - "index.html"
-      - "assets/**"
-      - "data/**"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
