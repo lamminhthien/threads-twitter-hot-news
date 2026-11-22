@@ -35,6 +35,40 @@ function timeAgo(iso) {
 
 const compact = new Intl.NumberFormat("vi-VN", { notation: "compact" });
 
+const THREADS_HOSTS = new Set([
+  "threads.net",
+  "www.threads.net",
+  "threads.com",
+  "www.threads.com",
+]);
+
+// Trả về { href, label } cho nút mở bài. Link mẫu/không hợp lệ (vd. .../post/sample-1)
+// sẽ được thay bằng trang tìm kiếm Threads theo từ khóa của bài để không dẫn tới 404.
+function postLink(item) {
+  const raw = typeof item.permalink === "string" ? item.permalink.trim() : "";
+
+  try {
+    const url = new URL(raw);
+    const isPost =
+      /^https?:$/.test(url.protocol) &&
+      THREADS_HOSTS.has(url.hostname) &&
+      /^\/@[^/]+\/post\/[^/]+/.test(url.pathname) &&
+      !/\/post\/sample-/i.test(url.pathname);
+    if (isPost) return { href: url.href, label: "Xem trên Threads →" };
+  } catch {
+    // permalink rỗng hoặc không phải URL
+  }
+
+  if (item.keyword) {
+    return {
+      href: `https://www.threads.net/search?q=${encodeURIComponent(item.keyword)}`,
+      label: "Tìm bài tương tự trên Threads →",
+    };
+  }
+
+  return null;
+}
+
 function statsLine(item) {
   const parts = [];
   if (item.keyword) parts.push(`#${item.keyword}`);
@@ -103,8 +137,13 @@ function renderCards() {
     else topic.remove();
 
     const link = node.querySelector(".link");
-    if (item.permalink) link.href = item.permalink;
-    else link.remove();
+    const post = postLink(item);
+    if (post) {
+      link.href = post.href;
+      link.textContent = post.label;
+    } else {
+      link.remove();
+    }
 
     return node;
   });
